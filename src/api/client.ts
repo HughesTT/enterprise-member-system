@@ -14,7 +14,7 @@ apiClient.interceptors.response.use(
     console.log('API error:', error)
 
     // if (status === 401) {
-    //   // 可以處理 401 錯誤，例如跳轉到登錄頁面
+    //   // 處理 401 錯誤，例如跳轉到登錄頁面
     // }
     // if (status === 403) {
     //   // 可以處理 403 錯誤，例如顯示權限不足的提示
