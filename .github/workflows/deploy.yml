@@ -1,0 +1,69 @@
+name: Deploy to GitHub Pages
+
+on:
+  # 當推送到 main 分支時觸發
+  push:
+    branches:
+      - main
+  
+  # 允許手動觸發
+  workflow_dispatch:
+
+# 設定 GITHUB_TOKEN 的權限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  
+# 只允許一個部署同時進行
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # 建置工作
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Static HTML export with Nuxt
+        run: npm run generate
+      
+      # 排除不需要部署的文件
+      - name: Remove files not for deployment
+        run: |
+          # 刪除 README.md（如果有複製到 public）
+          rm -f .output/public/README.md
+          # 刪除 setup 腳本
+          rm -f .output/public/*.ps1
+          # 刪除其他不需要的文件
+          # rm -f .output/public/某個文件.txt
+      
+      # 將 npm run generate 產生的靜態檔案上傳
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./.output/public
+
+  # 部署工作
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
