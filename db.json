@@ -1,0 +1,53 @@
+{
+  "members": [
+    {
+      "id": "1",
+      "name": "Tom",
+      "email": "tom@test.com",
+      "status": 1
+    },
+    {
+      "id": "2",
+      "name": "Mary",
+      "email": "mary@test.com",
+      "status": 1
+    },
+    {
+      "id": "3",
+      "name": "John",
+      "email": "john@test.com",
+      "status": 1
+    },
+    {
+      "id": "4",
+      "name": "Peter",
+      "email": "peter@test.com",
+      "status": 1
+    },
+    {
+      "name": "Audi",
+      "email": "audi@test.com",
+      "status": 1,
+      "id": "X660PVru4Nk"
+    },
+    {
+      "name": "Leon",
+      "email": "leon@test.com",
+      "status": 0,
+      "id": "8IzBV83sfmk"
+    },
+    {
+      "name": "Cat",
+      "email": "cat@test.com",
+      "status": 1,
+      "id": "zKeFYbakvPc"
+    },
+    {
+      "name": "BMW",
+      "email": "bmw@test.com",
+      "status": 1,
+      "id": "tEk0AXeTI5s"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}
