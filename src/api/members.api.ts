@@ -3,7 +3,8 @@ import type { Member, MemberSearchParams, ApiMember, CreateMember, UpdateMember 
 import type { PageResponse, ListResponse } from '../types/api'
 
 export async function getMembers(
-  params: MemberSearchParams
+  params: MemberSearchParams,
+  signal?: AbortSignal
 ): Promise<ListResponse<Member>> {
 
   const response = await apiClient.get<PageResponse<ApiMember>>(
@@ -11,7 +12,7 @@ export async function getMembers(
     {
       params: {
         ...(params.keyword && {
-          name: params.keyword
+          'name:contains': params.keyword.trim()
         }),
 
         ...(params.status !== null && {
@@ -21,6 +22,7 @@ export async function getMembers(
         _page: params.page,
         _per_page: params.pageSize,
       },
+      signal
     }
   )
   console.log(response)
