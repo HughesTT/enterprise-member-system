@@ -1,31 +1,52 @@
 import axios from 'axios'
+import pinia from '../stores'
+import { useAuthStore } from '../stores/auth'
 
 // 創建一個 axios 實例 (ApiInstance)，並設置基礎 URL
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:3000'
+  baseURL: 'http://localhost:3000',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 })
-// 設置響應攔截器(ApiInterceptor)，統一處理 API 錯誤
+
+// 設置請求攔截器，將 token 添加到每個請求的 headers
+apiClient.interceptors.request.use((config) => {
+  const authStore = useAuthStore(pinia)
+
+  const token = authStore.accessToken
+  if(token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// 設置請求攔截器，將 token 添加到請求
 apiClient.interceptors.response.use(
-  (response) => {
+  response => {
+    // API 請求成功，直接回傳 response
     return response
   },
-  (error) => {
-    // const status = error.response?.status
-    console.log('API error:', error)
+  async (error) => {
+    // HTTP 401: 登入狀態失效或 Token 無效
+    if (error.response?.status === 401) {
+      const authStore = useAuthStore(pinia)
 
-    // if (status === 401) {
-    //   // 處理 401 錯誤，例如跳轉到登錄頁面
-    // }
-    // if (status === 403) {
-    //   // 可以處理 403 錯誤，例如顯示權限不足的提示
-    // }
-    // if (status === 404) {
-    //   // 可以處理 404 錯誤，例如顯示資源未找到的提示
-    // }
-    // if (status === 500) {
-    //   // 可以處理 500 錯誤，例如顯示服務器錯誤的提示
-    // }
+      // 清除登入狀態與 localStorage
+      authStore.logout()
 
-    return Promise.reject(error) // 已處理過的error，繼續向上拋出，讓其他 API 可以處理
+      // 動態載入 Router，避免初始化時形成循環依賴
+      const { default: router } = await import('../router')
+
+      // 導向登入頁面
+      await router.push({ name: 'Login' })
+    }
+
+    // 將錯誤繼續傳給 API 呼叫端
+    return Promise.reject(error)
   }
 )
+
+
+export default apiClient

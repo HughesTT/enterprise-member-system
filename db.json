@@ -37,16 +37,40 @@
       "id": "8IzBV83sfmk"
     },
     {
-      "name": "Cat",
-      "email": "cat@test.com",
-      "status": 1,
-      "id": "zKeFYbakvPc"
-    },
-    {
       "name": "BMW",
       "email": "bmw@test.com",
       "status": 1,
       "id": "tEk0AXeTI5s"
+    },
+    {
+      "name": "重複提交測試1110-1522",
+      "email": "duplicate-test@example.com",
+      "status": 1,
+      "id": "N8uZj_P7ayU"
+    },
+    {
+      "name": "Audi RSQ5",
+      "email": "rsq5@test.com",
+      "status": 1,
+      "id": "vPKe_F312J0"
+    },
+    {
+      "name": "Audi RS6",
+      "email": "rs6@test.com",
+      "status": 1,
+      "id": "XD5mSrndBSE"
+    },
+    {
+      "name": "SQ5",
+      "email": "sq5@test.com",
+      "status": 1,
+      "id": "M5FhVWQ_XCo"
+    },
+    {
+      "name": "Audi SQ3",
+      "email": "sq3@test.com",
+      "status": 1,
+      "id": "MXtgcObEEyI"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
