@@ -31,12 +31,3 @@ export async function login(
 
   throw new Error('帳號或密碼錯誤') // 若帳號密碼不符合任何條件，拋出錯誤
 }
-
-// login({
-//   username: 'admin',
-//   password: 'admin123'
-// }).then((result) => {
-//   console.log('登入成功：', result)
-// }).catch((error: Error) => {
-//   console.error(error.message)
-// })
