@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, useTemplateRef } from 'vue'
 import type { CreateMember } from '../../types/member'
 
 const props = defineProps<{
@@ -22,6 +22,9 @@ function validateEmail(email: string): boolean {
   
   return emailPattern.test(email)
 }
+
+const nameInput = ref<HTMLInputElement | null>(null)
+const emailInput = ref<HTMLInputElement | null>(null)
 
 const nameError = ref('')
 const emailError = ref('')
@@ -46,8 +49,13 @@ function handleSubmit() {
     emailError.value = 'Email 格式不正確'
   }
 
-  // 有任何欄位錯誤，就停止送出
+  // 如果有任何欄位錯誤，就停止送出，並將焦點移到第一個有錯誤的欄位
   if (nameError.value || emailError.value) {
+    if (nameError.value) { // 如果姓名有錯誤，將焦點移到姓名欄位
+      nameInput.value?.focus()
+    } else if (emailError.value) { // 如果 Email 有錯誤，將焦點移到 Email 欄位
+      emailInput.value?.focus()
+    }
     return
   }
 
@@ -84,8 +92,12 @@ function handleSubmit() {
             name: ($event.target as HTMLInputElement).value
           })
           "
+        ref="nameInput"
+        :aria-invalid="!!nameError"
+        :aria-describedby="nameError ? `${title === '新增會員' ? 'new' : 'edit'}-member-name-error` : undefined"
+        :class="{ 'member-form__input--error':nameError }"
       />
-      <p v-if="nameError" class="member-form_error">
+      <p v-if="nameError" class="member-form__error" :id="`${title === '新增會員' ? 'new' : 'edit'}-member-name-error`">
         {{ nameError }}
       </p>
     </div>
@@ -97,8 +109,12 @@ function handleSubmit() {
         type="email"
         placeholder="請輸入Email"
         @input="emailError=''"
+        ref="emailInput"
+        :aria-invalid="!!emailError"
+        :aria-describedby="emailError ? `${title === '新增會員' ? 'new' : 'edit'}-member-email-error` : undefined"
+        :class="{ 'member-form__input--error':emailError }"
       />
-      <p v-if="emailError" class="member-form_error">
+      <p v-if="emailError" class="member-form__error" :id="`${title === '新增會員' ? 'new' : 'edit'}-member-email-error`">
         {{ emailError }}
       </p>
     </div>

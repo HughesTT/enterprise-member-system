@@ -7,7 +7,7 @@ import { useAuthStore } from '../stores/auth'
 import MemberForm from '../components/members/MemberForm.vue'
 import './MemberList.css'
 
-const { members, loading, error, totalItems, totalPages, searchParams, fetchMembers, searchMembers, successMessage, nextPage, prevPage, addMember, removeMember, editMember, submitting } = useMembers()
+const { members, loading, error, totalItems, totalPages, searchParams, fetchMembers, searchMembers, successMessage, nextPage, prevPage, addMember, removeMember, editMember, submitting, hasLoaded, resetSearch } = useMembers()
 
 const newMember = ref<CreateMember>({
   name: '',
@@ -24,6 +24,12 @@ const editForm = ref<CreateMember>({
 const authStore = useAuthStore()
 const router = useRouter()
 const isAdmin = computed(() => authStore.user?.role === 'admin')
+const hasSearchConditions = computed(() => { // 判斷是否有搜尋條件
+  return (
+    searchParams.keyword.trim() !== '' || searchParams.status !== null
+  )
+})
+const deletingMemberId = ref<string | null>(null)
 
 async function handleLogout() {
   authStore.logout()
@@ -81,11 +87,21 @@ async function handleDeleteMmeber(member: Member) {
   if (!confirmDelete) {
     return
   }
-  const success = await removeMember(member.id)
+  deletingMemberId.value = member.id
+  try {
+    const success = await removeMember(member.id)
 
-  if (!success) {
-    return
+    if (!success) {
+      return
+    }
+  } finally {
+    deletingMemberId.value = null
   }
+}
+
+async function handleResetSearch() {
+  clearTimeout(debounceTimer)
+  await resetSearch()
 }
 
 // 監聽搜尋參數變化，使用計時器觸發搜尋
@@ -196,48 +212,97 @@ onUnmounted(() => {
         role="status"
         aria-live="polite"
       >{{ successMessage }}</div>
-      <div v-if="loading" class="list-message loading-state" role="status" aria-live="polite">
+      <!-- 初次載入 -->
+      <div
+        v-if="loading && !hasLoaded"
+        class="list-message loading-state"
+        role="status"
+        aria-live="polite"
+      >
         <span class="loading-spinner" aria-hidden="true"></span>
         <span>讀取中...</span>
       </div>
-      <div v-else-if="error" class="list-message list-message--error" role="alert">{{ error }}</div>
-      <div v-else class="table-scroll">
-        <table class="member-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>姓名</th>
-              <th>電子郵件</th>
-              <th>狀態</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="member in members" :key="member.id">
-              <td class="member-id">{{ member.id }}</td>
-              <td class="member-name">{{ member.name }}</td>
-              <td>{{ member.email }}</td>
-              <td>
-                <span
-                  class="status-badge"
-                  :class="member.status === 1 ? 'status-badge--active' : 'status-badge--inactive'"
-                >
-                  {{ member.status === 1 ? '啟用' : '停用' }}
-                </span>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <button class="button button--row" @click="startEdit(member)" v-if="isAdmin">編輯</button>
-                  <button class="button button--row button--danger" @click="handleDeleteMmeber(member)" v-if="isAdmin">刪除</button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="members.length === 0">
-              <td colspan="5" class="empty-state">目前沒有符合條件的會員</td>
-            </tr>
-          </tbody>
-        </table>
+
+      <!-- 初次載入失敗 -->
+      <div
+        v-else-if="error && !hasLoaded"
+        class="list-message list-message--error"
+        role="alert"
+      >
+        {{ error }}
       </div>
+
+      <!-- 已經成功載入過資料 -->
+      <template v-else>
+
+        <!-- 搜尋或切換頁碼時的載入提示 -->
+        <div
+          v-if="loading"
+          class="list-message loading-state"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="loading-spinner" aria-hidden="true"></span>
+          <span>更新資料中...</span>
+        </div>
+
+        <!-- 後續載入失敗 -->
+        <div
+          v-if="error"
+          class="list-message list-message--error"
+          role="alert"
+        >
+          {{ error }}
+        </div>
+
+        <!-- 原本的會員列表，完整保留 -->
+        <div class="table-scroll">
+          <table class="member-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>姓名</th>
+                <th>電子郵件</th>
+                <th>狀態</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="member in members" :key="member.id">
+                <td class="member-id">{{ member.id }}</td>
+                <td class="member-name">{{ member.name }}</td>
+                <td>{{ member.email }}</td>
+                <td>
+                  <span
+                    class="status-badge"
+                    :class="member.status === 1 ? 'status-badge--active' : 'status-badge--inactive'"
+                  >
+                    {{ member.status === 1 ? '啟用' : '停用' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="button button--row" @click="startEdit(member)" v-if="isAdmin">編輯</button>
+                    <button
+                      class="button button--row button--danger" @click="handleDeleteMmeber(member)"
+                      v-if="isAdmin"
+                      :disabled="deletingMemberId !== null"
+                    >
+                      {{ deletingMemberId === member.id ? '刪除中...' : '刪除' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="members.length === 0">
+                <td colspan="5" class="empty-state">
+                  {{ hasSearchConditions ? '找不到符合條件的會員' : '目前尚無會員資料' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </template>
 
       <nav class="pagination" aria-label="會員列表分頁">
         <button

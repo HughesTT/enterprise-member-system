@@ -295,6 +295,16 @@
   font-size: 13px;
 }
 
+.member-form__input--error {
+  border-color: #b44747;
+  background-color: #fff8f8;
+}
+
+.member-form__input--error:focus {
+  outline: 2px solid rgb(180 71 71 / 40%);
+  outline-offset: 1px;
+}
+
 .list-panel {
   margin-top: 0;
 }
