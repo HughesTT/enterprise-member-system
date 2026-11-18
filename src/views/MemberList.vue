@@ -7,7 +7,7 @@ import { useAuthStore } from '../stores/auth'
 import MemberForm from '../components/members/MemberForm.vue'
 import './MemberList.css'
 
-const { members, loading, error, totalItems, totalPages, searchParams, fetchMembers, searchMembers, successMessage, nextPage, prevPage, addMember, removeMember, editMember, submitting, hasLoaded, resetSearch } = useMembers()
+const { members, loading, error, totalItems, totalPages, searchParams, fetchMembers, searchMembers, successMessage, nextPage, prevPage, addMember, removeMember, editMember, submitting, hasLoaded } = useMembers()
 
 const newMember = ref<CreateMember>({
   name: '',
@@ -97,11 +97,6 @@ async function handleDeleteMmeber(member: Member) {
   } finally {
     deletingMemberId.value = null
   }
-}
-
-async function handleResetSearch() {
-  clearTimeout(debounceTimer)
-  await resetSearch()
 }
 
 // 監聽搜尋參數變化，使用計時器觸發搜尋

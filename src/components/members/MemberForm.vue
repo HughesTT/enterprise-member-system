@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, useTemplateRef } from 'vue'
+import { ref } from 'vue'
 import type { CreateMember } from '../../types/member'
 
 const props = defineProps<{
@@ -108,7 +108,13 @@ function handleSubmit() {
         v-model="modelValue.email"
         type="email"
         placeholder="請輸入Email"
-        @input="emailError=''"
+        @input="
+          emailError = '',
+          emit('update:modelValue', {
+            ...modelValue,
+            email: ($event.target as HTMLInputElement).value
+          })
+        "
         ref="emailInput"
         :aria-invalid="!!emailError"
         :aria-describedby="emailError ? `${title === '新增會員' ? 'new' : 'edit'}-member-email-error` : undefined"
