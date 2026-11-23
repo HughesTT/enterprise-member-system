@@ -23,7 +23,7 @@ function isValidAuthUser(value: unknown): value is AuthUser {
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null) // 使用者資訊，若未登入則為 null
   const accessToken = ref<string | null>(null) // 存放存取token，若未登入則為 null
-  const isAuthenticated = computed(() => accessToken.value !== null) // 使用computed計算是否已驗證登入狀態
+  const isAuthenticated = computed(() => accessToken.value !== null) // 使用computed計算是否已驗證登入狀態，
   // isAuthenticated 是計算屬性，不需要在login、logout手動設定
 
   // 儲存認證資料到本地，加入 localStorage 讓重新整理後能還原登入狀態
@@ -40,7 +40,10 @@ export const useAuthStore = defineStore('auth', () => {
     const savedToken = localStorage.getItem('accessToken')
 
     // 只要其中一項不存在，就不還原登入狀態
-    if (!savedUser || !savedToken) return
+    if (!savedUser || !savedToken) {
+      logout()
+      return
+    }
 
     try {
       const parsedUser: unknown = JSON.parse(savedUser)

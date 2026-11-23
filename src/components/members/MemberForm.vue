@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, computed } from 'vue'
 import type { CreateMember } from '../../types/member'
 
 const props = defineProps<{
@@ -16,6 +16,8 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const formIdPrefix = computed(() => props.title === '新增會員' ? 'new' : 'edit')
+
 // 驗證 Email 格式的函式
 function validateEmail(email: string): boolean {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -28,14 +30,48 @@ const emailInput = ref<HTMLInputElement | null>(null)
 
 const nameError = ref('')
 const emailError = ref('')
+const formValue = ref<CreateMember>({ ...props.modelValue }) // 用於本地表單資料，避免直接修改 props
+
+watch(
+  () => props.modelValue,
+  (value) => {
+    formValue.value = { ...value }
+  },
+  { deep: true }
+)
+
+function updateFormValue(patch: Partial<CreateMember>) {
+  formValue.value = {
+    ...formValue.value,
+    ...patch
+  }
+  emit('update:modelValue', { ...formValue.value })
+}
+
+// 處理姓名輸入事件，更新父層資料並清除錯誤訊息
+function handleNameInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  nameError.value = ''
+  updateFormValue({ name: value })
+}
+
+// 處理 Email 輸入事件，更新父層資料並清除錯誤訊息
+function handleEmailInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  emailError.value = ''
+  updateFormValue({ email: value })
+}
 
 function handleSubmit() {
   // 每次送出前，先清除上一次的錯誤訊息
   nameError.value = ''
   emailError.value = ''
 
-  const name = props.modelValue.name.trim()
-  const email = props.modelValue.email.trim()
+  const name = formValue.value.name.trim()
+  const email = formValue.value.email.trim()
+
+  // 如果正在提交中，則不進行驗證與送出
+  if (props.submitting) return
 
   // 驗證姓名
   if (!name) {
@@ -60,11 +96,7 @@ function handleSubmit() {
   }
 
   // 將去除前後空白的資料更新回父層
-  emit('update:modelValue', {
-    ...props.modelValue,
-    name,
-    email
-  })
+  updateFormValue({ name, email })
 
   // 驗證通過後，才通知父層執行CRUD
   emit('submit')
@@ -79,59 +111,46 @@ function handleSubmit() {
     </div>
 
     <div class="member-form__field">
-      <label :for="`${title === '新增會員' ? 'new' : 'edit'}-member-name`">姓名</label>
+      <label :for="`${formIdPrefix}-member-name`">姓名</label>
       <input 
-        :id="`${title === '新增會員' ? 'new' : 'edit'}-member-name`"
-        v-model="modelValue.name"
+        :id="`${formIdPrefix}-member-name`"
+        :value="formValue.name"
         type="text"
         placeholder="請輸入姓名"
-        @input="
-          nameError = '',
-          emit('update:modelValue', {
-            ...modelValue,
-            name: ($event.target as HTMLInputElement).value
-          })
-          "
+        @input="handleNameInput"
         ref="nameInput"
         :aria-invalid="!!nameError"
-        :aria-describedby="nameError ? `${title === '新增會員' ? 'new' : 'edit'}-member-name-error` : undefined"
+        :aria-describedby="nameError ? `${formIdPrefix}-member-name-error` : undefined"
         :class="{ 'member-form__input--error':nameError }"
       />
-      <p v-if="nameError" class="member-form__error" :id="`${title === '新增會員' ? 'new' : 'edit'}-member-name-error`">
+      <p v-if="nameError" class="member-form__error" :id="`${formIdPrefix}-member-name-error`">
         {{ nameError }}
       </p>
     </div>
     <div class="member-form__field">
-      <label :for="`${title === '新增會員' ? 'new' : 'edit'}-member-email`">Email</label>
+      <label :for="`${formIdPrefix}-member-email`">Email</label>
       <input 
-        :id="`${title === '新增會員' ? 'new' : 'edit'}-member-email`"
-        v-model="modelValue.email"
+        :id="`${formIdPrefix}-member-email`"
+        :value="formValue.email"
         type="email"
         placeholder="請輸入Email"
-        @input="
-          emailError = '',
-          emit('update:modelValue', {
-            ...modelValue,
-            email: ($event.target as HTMLInputElement).value
-          })
-        "
+        @input="handleEmailInput"
         ref="emailInput"
         :aria-invalid="!!emailError"
-        :aria-describedby="emailError ? `${title === '新增會員' ? 'new' : 'edit'}-member-email-error` : undefined"
+        :aria-describedby="emailError ? `${formIdPrefix}-member-email-error` : undefined"
         :class="{ 'member-form__input--error':emailError }"
       />
-      <p v-if="emailError" class="member-form__error" :id="`${title === '新增會員' ? 'new' : 'edit'}-member-email-error`">
+      <p v-if="emailError" class="member-form__error" :id="`${formIdPrefix}-member-email-error`">
         {{ emailError }}
       </p>
     </div>
     <div class="member-form__field">
-      <label :for="`${title === '新增會員' ? 'new' : 'edit'}-member-status`">狀態</label>
+      <label :for="`${formIdPrefix}-member-status`">狀態</label>
       <select
-        :id="`${title === '新增會員' ? 'new' : 'edit'}-member-status`"
-        :value="modelValue.status"
+        :id="`${formIdPrefix}-member-status`"
+        :value="formValue.status"
         @change="
-          emit('update:modelValue', {
-            ...modelValue,
+          updateFormValue({
             status: ($event.target as HTMLSelectElement).value === '1' ? 1 : 0
           })
         "

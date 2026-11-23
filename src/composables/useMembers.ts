@@ -18,10 +18,11 @@ export function useMembers() {
   
   const totalItems = ref(0)
   const totalPages = ref(1)
+  const DEFAULT_PAGE_SIZE = 5 // 先定義每頁顯示的比數，方便未來維護
 
   const searchParams = reactive<MemberSearchParams>({
     page: 1,
-    pageSize: 5,
+    pageSize: DEFAULT_PAGE_SIZE,
     keyword: '',
     status: null
   })
@@ -71,7 +72,7 @@ export function useMembers() {
 
       return 'error'
     } finally {
-      // 避免就請求結束時，將新請求的 loading 關閉
+      // 避免舊請求結束時，將新請求的 loading 關閉
       if (activeController === controller) { // 只有最新的請求控制器等於目前的控制器才關閉 loading
         loading.value = false
         activeController = null
@@ -210,7 +211,7 @@ export function useMembers() {
   // 重新設定搜尋條件並重新抓取會員資料
   async function resetSearch() {
     searchParams.page = 1
-    searchParams.pageSize = 5
+    searchParams.pageSize = DEFAULT_PAGE_SIZE
     searchParams.keyword = ''
     searchParams.status = null
     await fetchMembers()

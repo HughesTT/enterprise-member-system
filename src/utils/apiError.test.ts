@@ -22,6 +22,7 @@ describe('getApiErrorMessage - HTTP 狀態碼', () => {
     expect(result).toBe(expected)
   }))
 
+  // 測試 Network Error
   it('Network Error 應回傳網路錯誤訊息', () => {
     const networkError = new axios.AxiosError(
       'Network Error',
@@ -34,10 +35,20 @@ describe('getApiErrorMessage - HTTP 狀態碼', () => {
     expect(result).toBe('無法連線至伺服器，請檢查網路')
   })
 
+  // 測試一般 JavaScript Error
   it('一般 JavaScript Error 應回應預設錯誤訊息', () => {
     const normalError = new Error('一般程式錯誤')
     const result = getApiErrorMessage(
       normalError,
+      '預設錯誤訊息'
+    )
+    expect(result).toBe('預設錯誤訊息')
+  })
+
+  // 測試未列出的 HTTP 狀態碼
+  it('未列出的 HTTP 狀態碼應回應預設錯誤訊息', () => {
+    const result = getApiErrorMessage(
+      createAxiosError(503),
       '預設錯誤訊息'
     )
     expect(result).toBe('預設錯誤訊息')

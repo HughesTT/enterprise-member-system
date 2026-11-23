@@ -66,8 +66,6 @@ async function handleAddMember() {
     email: '',
     status: 1
   }
-
-  cancelEdit()
 }
 async function handleUpdateMember() {
   if (!editingMemberId.value) {
@@ -82,11 +80,12 @@ async function handleUpdateMember() {
 
   cancelEdit()
 }
-async function handleDeleteMmeber(member: Member) {
+async function handleDeleteMember(member: Member) {
   const confirmDelete = window.confirm(`確定要刪除會員「${member.name}」嗎？`)
   if (!confirmDelete) {
     return
   }
+  clearTimeout(debounceTimer) // 取消尚未執行的搜尋計時器，避免刪除操作與搜尋衝突
   deletingMemberId.value = member.id
   try {
     const success = await removeMember(member.id)
@@ -100,7 +99,7 @@ async function handleDeleteMmeber(member: Member) {
 }
 
 // 監聽搜尋參數變化，使用計時器觸發搜尋
-let debounceTimer: ReturnType<typeof setTimeout>
+let debounceTimer: ReturnType<typeof setTimeout> | undefined
 
 watch(
   () => [
@@ -125,22 +124,47 @@ onUnmounted(() => {
 })
 </script>
 <template>
-  <main class="member-page">
+  <div class="app-shell">
+    <aside class="app-sidebar" aria-label="主要導覽">
+      <a class="brand" href="#/members" aria-label="會員管理系統首頁">
+        <span class="brand__mark" aria-hidden="true">M</span>
+        <span class="brand__text">
+          <strong>MemberDesk</strong>
+          <small>會員管理系統</small>
+        </span>
+      </a>
+
+      <div class="sidebar-section-label">工作空間</div>
+      <nav class="sidebar-nav">
+        <a class="sidebar-nav__link sidebar-nav__link--active" href="#/members" aria-current="page">
+          <span class="sidebar-nav__icon" aria-hidden="true">▦</span>
+          <span>會員管理</span>
+          <span class="sidebar-nav__chevron" aria-hidden="true">›</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar" aria-hidden="true">
+          {{ authStore.user?.name?.slice(0, 1) || 'U' }}
+        </div>
+        <div class="sidebar-account user-info">
+          <strong>{{ authStore.user?.name }}</strong>
+          <span>{{ authStore.user?.role === 'admin' ? '系統管理員' : '客服人員' }}</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="member-page">
     <header class="page-heading">
       <div>
         <p class="eyebrow">MEMBER DIRECTORY</p>
         <h1>會員管理</h1>
+        <p class="page-description">管理會員資料、狀態與帳戶資訊。</p>
       </div>
       <div class="page-heading__actions">
         <div class="member-count">
           <span class="member-count__label">會員總數</span>
           <strong>{{ totalItems }}</strong>
-        </div>
-        <div class="user-info">
-          <strong>{{ authStore.user?.name }}</strong>
-          <span>
-            {{ authStore.user?.role === 'admin' ? '系統管理員' : '客服人員' }}
-          </span>
         </div>
         <button class="button button--secondary" type="button" @click="handleLogout">
           登出
@@ -159,11 +183,11 @@ onUnmounted(() => {
         <form class="search-form" @submit.prevent>
           <label>
             <span>姓名</span>
-            <input v-model="searchParams.keyword" type="search" placeholder="請輸入姓名"/>
+            <input v-model="searchParams.keyword" type="search" placeholder="請輸入姓名" :disabled="deletingMemberId !== null"/>
           </label>
           <label>
             <span>會員狀態</span>
-            <select v-model="searchParams.status">
+            <select v-model="searchParams.status" :disabled="deletingMemberId !== null">
               <option :value="null">全部狀態</option>
               <option :value="1">啟用</option>
               <option :value="0">停用</option>
@@ -277,9 +301,9 @@ onUnmounted(() => {
                 </td>
                 <td>
                   <div class="row-actions">
-                    <button class="button button--row" @click="startEdit(member)" v-if="isAdmin">編輯</button>
-                    <button
-                      class="button button--row button--danger" @click="handleDeleteMmeber(member)"
+                    <button type="button" class="button button--row" @click="startEdit(member)" v-if="isAdmin">編輯</button>
+                    <button type="button"
+                      class="button button--row button--danger" @click="handleDeleteMember(member)"
                       v-if="isAdmin"
                       :disabled="deletingMemberId !== null"
                     >
@@ -302,7 +326,7 @@ onUnmounted(() => {
       <nav class="pagination" aria-label="會員列表分頁">
         <button
           class="button button--secondary"
-          :disabled="searchParams.page <= 1"
+          :disabled="deletingMemberId !== null || searchParams.page <= 1"
           @click="prevPage"
         >
           上一頁
@@ -310,12 +334,13 @@ onUnmounted(() => {
         <span>第 <strong>{{ searchParams.page }}</strong> / {{ totalPages }} 頁</span>
         <button
           class="button button--secondary"
-          :disabled="searchParams.page >= totalPages"
+          :disabled="deletingMemberId !== null || searchParams.page >= totalPages"
           @click="nextPage"
         >
           下一頁
         </button>
       </nav>
     </section>
-  </main>
+    </main>
+  </div>
 </template>

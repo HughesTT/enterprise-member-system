@@ -180,7 +180,8 @@ describe('useAuthStore', () => {
     expect(authStore.isAuthenticated).toBe(false)
 
     // 缺少 Token 時，不應還原使用者資料
-    expect(localStorage.getItem('authUser')).toBe(JSON.stringify(savedUser))
+    expect(localStorage.getItem('accessToken')).toBe(null)
+    expect(localStorage.getItem('authUser')).toBe(null)
   })
 
   // 測試缺少 authUser 時的處理
@@ -193,8 +194,9 @@ describe('useAuthStore', () => {
     expect(authStore.accessToken).toBe(null)
     expect(authStore.isAuthenticated).toBe(false)
 
-    // 缺少使用者資料時，原本的 Token 仍保留
-    expect(localStorage.getItem('accessToken')).toBe('mock-admin-token')
+    // 缺少使用者資料時，應清除所有的認證資料
+    expect(localStorage.getItem('authUser')).toBe(null)
+    expect(localStorage.getItem('accessToken')).toBe(null)
   })
 
   // 測試再次呼叫 restoreAuthData 的行為
