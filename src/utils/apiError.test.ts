@@ -66,7 +66,7 @@ function createAxiosError(status: number) {
       data: {},
       status,
       statusText: '',
-      headers: {},
+      headers: new axios.AxiosHeaders(),
       config: { headers: new axios.AxiosHeaders() }
     }
   )
