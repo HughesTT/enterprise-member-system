@@ -1,4 +1,3 @@
-import router from '../router'
 import type { LoginCredentials, LoginResponse } from '../types/auth'
 
 // 模擬登入 API
