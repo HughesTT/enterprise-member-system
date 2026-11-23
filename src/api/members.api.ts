@@ -7,12 +7,13 @@ export async function getMembers(
   signal?: AbortSignal
 ): Promise<ListResponse<Member>> {
 
+  const keyword = params.keyword.trim() // 先去除前後空白，避免送出空白搜尋，也可以減少重複的請求
   const response = await apiClient.get<PageResponse<ApiMember>>(
     '/members',
     {
       params: {
-        ...(params.keyword && {
-          'name:contains': params.keyword.trim()
+        ...(keyword && {
+          'name:contains': keyword
         }),
 
         ...(params.status !== null && {
@@ -25,7 +26,6 @@ export async function getMembers(
       signal
     }
   )
-  console.log(response)
 
   return {
     list: response.data.data,

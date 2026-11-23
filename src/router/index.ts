@@ -24,6 +24,14 @@ const router = createRouter({
       meta: { // 進入頁面不需要驗證登入狀態
         requiresAuth: false
       }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: () => import('../views/NotFoundView.vue'),
+      meta: {
+        requiresAuth: false // NotFound頁面不需要驗證登入狀態
+      }
     }
   ],
 })
@@ -44,13 +52,14 @@ router.beforeEach((to) => {
     return { name: 'MemberList'}
   }
 
-  // 檢查目前使用者是否具有該頁面的存取權限
-  if (
-    to.meta.roles &&
-    authStore.user &&
-    !to.meta.roles.includes(authStore.user.role)
-  ) {
-    return { name: 'MemberList'}
+  // 檢查目前使用者是否具有該頁面的存取權限，可以避免遇到authStore.user 是 null 判斷會被跳過的情況
+  if (to.meta.roles) {
+    if (
+      !authStore.user ||
+      !to.meta.roles.includes(authStore.user.role)
+    ) {
+      return { name: 'MemberList' }
+    }
   }
 
   return true

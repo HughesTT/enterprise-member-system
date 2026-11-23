@@ -1,4 +1,4 @@
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onUnmounted } from 'vue'
 import axios from 'axios'
 import { createMember, getMembers, deleteMember, updateMember } from '../api/members.api'
 import type { Member, MemberSearchParams, CreateMember, UpdateMember } from '../types/member'
@@ -7,20 +7,22 @@ import { getApiErrorMessage } from '../utils/apiError'
 
 export function useMembers() {
   const authStore = useAuthStore()
-  const canManageMembers = computed(
+  const canManageMembers = computed( // 判斷目前帳號是否有管理會員的權限
     () => authStore.user?.role === 'admin'
   )
   const members = ref<Member[]>([])
+  const hasLoaded = ref(false) // 是否已經載入過會員資料
   const loading = ref(false)
   const error = ref('')
   const submitting = ref(false)
   
   const totalItems = ref(0)
   const totalPages = ref(1)
+  const DEFAULT_PAGE_SIZE = 5 // 先定義每頁顯示的比數，方便未來維護
 
   const searchParams = reactive<MemberSearchParams>({
     page: 1,
-    pageSize: 5,
+    pageSize: DEFAULT_PAGE_SIZE,
     keyword: '',
     status: null
   })
@@ -29,10 +31,15 @@ export function useMembers() {
   // 紀錄目前正在執行的請求
   let activeController: AbortController | null = null
 
+  // 元件移除時，取消尚未完成的 API 請求
+  onUnmounted(() => {
+    activeController?.abort()
+  })
+
+  type FetchResult = 'success' | 'error' | 'cancelled'
+
   // 讀取會員資料
-  async function fetchMembers() {
-    // 每次讀取會員資料前，清空成功訊息
-    successMessage.value = ''
+  async function fetchMembers(): Promise<FetchResult> {
     // 取消前一個尚未完成的請求
     activeController?.abort()
 
@@ -47,22 +54,26 @@ export function useMembers() {
       const response = await getMembers(searchParams, controller.signal)
 
       // 只有最新的請求可以更新畫面
-      if (activeController !== controller) return
+      if (activeController !== controller) return 'cancelled'
 
       members.value = response.list
       totalItems.value = response.total
       totalPages.value = response.totalPages
+      hasLoaded.value = true
+      return 'success'
     } catch (err) {
-      if (axios.isCancel(err)) return // 被取消的請求不應顯示錯誤
-      if (activeController === controller) { // 只有最新的請求可以更新錯誤訊息
-        error.value = getApiErrorMessage(
-          err,
-          '讀取會員資料失敗'
-        )
-      }
+      if (axios.isCancel(err)) return 'cancelled'  // 被取消的請求不應顯示錯誤
+      // 如果不是最新的請求，不處理錯誤
+      if (activeController !== controller) return 'cancelled'
+      error.value = getApiErrorMessage(
+        err,
+        '讀取會員資料失敗'
+      )
+
+      return 'error'
     } finally {
-      // 避免就請求結束時，將新請求的 loading 關閉
-      if (activeController === controller) {
+      // 避免舊請求結束時，將新請求的 loading 關閉
+      if (activeController === controller) { // 只有最新的請求控制器等於目前的控制器才關閉 loading
         loading.value = false
         activeController = null
       }
@@ -83,9 +94,13 @@ export function useMembers() {
     successMessage.value = ''
     try {
       await createMember(data)
-      await fetchMembers()
-      successMessage.value = '新增會員成功'
 
+      const fetchResult = await fetchMembers() // 重新抓取會員列表，確保畫面更新
+      if (fetchResult === 'error') {
+        successMessage.value = '會員新增成功，但列表更新失敗'
+      } else {
+        successMessage.value = '新增會員成功'
+      }
       return true
     } catch (err) {
       error.value = getApiErrorMessage(
@@ -112,8 +127,33 @@ export function useMembers() {
     successMessage.value = ''
     try {
       await deleteMember(id)
-      await fetchMembers()
-      successMessage.value = '刪除會員成功'
+      const fetchResult = await fetchMembers()
+
+      if (fetchResult === 'error') {
+        successMessage.value = '會員刪除成功，但列表更新失敗'
+        return true
+      }
+
+      if (fetchResult === 'cancelled') {
+        successMessage.value = '會員刪除成功'
+        return true
+      }
+
+      // 如果刪除後當前頁超過總頁數，調整頁碼並重新讀取
+      if (searchParams.page > totalPages.value) {
+        searchParams.page = totalPages.value
+        const pageFetchResult = await fetchMembers() // 與前一個fetchResult做區分
+        if (pageFetchResult === 'error') {
+          successMessage.value = '會員刪除成功，但列表更新失敗'
+          return true
+        }
+
+        if (pageFetchResult === 'cancelled') {
+          successMessage.value = '會員刪除成功'
+          return true
+        }
+      }
+      successMessage.value = '會員刪除成功'
       return true
     } catch (err) {
       error.value = getApiErrorMessage(
@@ -143,8 +183,12 @@ export function useMembers() {
     successMessage.value = ''
     try {
       await updateMember(id, data)
-      await fetchMembers()
-      successMessage.value = '更新會員成功'
+      const fetchResult = await fetchMembers()
+      if (fetchResult === 'error') {
+        successMessage.value = '會員更新成功，但列表更新失敗'
+      } else {
+        successMessage.value = '更新會員成功'
+      }
 
       return true
     } catch (err) {
@@ -166,12 +210,11 @@ export function useMembers() {
 
   // 重新設定搜尋條件並重新抓取會員資料
   async function resetSearch() {
-    searchParams.page = 1,
-    searchParams.pageSize = 5,
-    searchParams.keyword = '',
+    searchParams.page = 1
+    searchParams.pageSize = DEFAULT_PAGE_SIZE
+    searchParams.keyword = ''
     searchParams.status = null
     await fetchMembers()
-
   }
 
   async function nextPage() {
@@ -191,6 +234,7 @@ export function useMembers() {
     loading,
     error,
     searchParams,
+    hasLoaded,
     successMessage,
     totalItems,
     totalPages,
