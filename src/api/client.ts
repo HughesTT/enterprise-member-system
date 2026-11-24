@@ -2,9 +2,9 @@ import axios from 'axios'
 import pinia from '../stores'
 import { useAuthStore } from '../stores/auth'
 
-// 創建一個 axios 實例 (ApiInstance)，並設置基礎 URL
+// 創建一個 axios 實例 (ApiInstance)，並從環境變數設定基本 URL，讓本機以及部署環境都能正確使用 API
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000', // 從環境變數取得 API 基礎 URL，若無則使用本地端 URL
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
