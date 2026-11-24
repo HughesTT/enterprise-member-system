@@ -97,18 +97,36 @@ npm run preview
 
 
 ## 部署
+### 前端網站
 
-GitHub Actions 會在推送至 `main` 分支時執行建置，並將 `dist` 部署到 GitHub Pages。
+使用 GitHub Pages 部署前端：
 
-專案頁面：https://hughestt.github.io/enterprise-member-system/
+https://hughestt.github.io/enterprise-member-system/
 
-## API 注意事項
+GitHub Actions 會在推送至 main 分支時自動執行建置，並將 dist 部署至 GitHub Pages。
 
-前端 API 位址目前設定為 `http://localhost:3000`。
-本機開發時，請同時啟動 JSON Server；GitHub Pages 僅託管靜態前端，不會託管 API。
-其他使用者開啟公開網站時，localhost 會指向他們自己的裝置，因此會員資料的讀取、新增、編輯及刪除功能無法連到你的本機 API。
-若要公開使用完整功能，需另行部署 API，並將前端 API 位址改為該服務的公開網址。
+## 公開 API
 
+使用 Render Web Service 部署 JSON Server：
+https://enterprise-member-system-api.onrender.com/members
+前端透過 Vite 環境變數 VITE_API_BASE_URL 設定 API Base URL：
+- 本機開發：預設使用 http://localhost:3000
+- 公開展示：使用 Render 公開 API 網址
+
+GitHub Actions 在正式建置時注入公開 API 網址，讓 GitHub Pages 上的前端可以連接 Render API。
+
+## 部署架構與 API 注意事項
+
+本專案採用前後端分開部署：
+- 前端：GitHub Pages，負責 Vue 3 網站及使用者介面。
+- API：Render Web Service，使用 JSON Server 提供 RESTful API。
+- 資料：使用 db.json 儲存會員測試資料。
+
+### 公開展示環境限制
+- Render 免費服務在一段時間沒有請求後可能進入休眠，首次請求可能需要等待服務重新啟動。
+- Render 免費服務使用暫存檔案系統，重新啟動或重新部署後，會員資料可能恢復成 GitHub 儲存庫內 db.json 的初始內容。
+- 公開 API 未實作正式的後端身分驗證及權限控管，任何知道 API 網址的人都可能直接呼叫資料操作端點。
+- 專案的登入與角色權限主要用於前端功能展示，並非正式的安全驗證機制。
 
 ## 測試帳號
 
@@ -117,6 +135,4 @@ GitHub Actions 會在推送至 `main` 分支時執行建置，並將 `dist` 部�
 | 管理員 | admin | admin123 | 會員新增、編輯及刪除 |
 | 客服人員 | staff | staff123 | 查看會員及使用搜尋功能 |
 
-> 本專案使用固定帳號密碼模擬登入驗證，
-> 測試帳號僅供功能展示與測試，
-> 並非正式身分驗證機制。
+> 本專案使用固定帳號密碼模擬登入驗證，測試帳號僅供功能展示與測試，並非正式身分驗證機制。
